@@ -6,45 +6,167 @@
 
 document.addEventListener('DOMContentLoaded', () => {
 
-  /* ── 1. LOADING SCREEN — Terminal Boot Sequence ── */
-  const terminal = document.getElementById('loader-terminal');
-  const loader  = document.getElementById('loader');
-  
-  if (terminal && loader) {
-    const bootSequence = [
-      "[OK] Initializing core modules...",
-      "[OK] Loading user preferences...",
-      "[OK] Mounting neural network weights...",
-      "[WARN] High packet loss detected. Rerouting...",
-      "[OK] Connection established.",
-      "[OK] Compiling UI assets...",
-      "Access granted. Welcome, Ziyankhan."
-    ];
+  /* ── 1. LOADING SCREEN — Cinematic Name Reveal ── */
+  const loader     = document.getElementById('loader');
+  const nameEl     = document.getElementById('loader-name');
+  const subtitleEl = document.getElementById('loader-subtitle');
+  const progressEl = document.getElementById('loader-progress');
+  const ldrCanvas  = document.getElementById('loader-particles');
 
-    let lineIndex = 0;
+  if (loader && nameEl) {
+    const NAME = "ZIYANKHAN PATHAN";
+    const SCRAMBLE_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789@#$%&*!?<>{}[]~^";
+    const DECODE_CYCLES = 8;       // how many random chars before resolving
+    const CYCLE_SPEED   = 45;      // ms per scramble tick
+    const LETTER_STAGGER = 90;     // ms delay between starting each letter
 
-    function printLine() {
-      if (lineIndex < bootSequence.length) {
-        const line = document.createElement('div');
-        line.className = 'loader-line';
-        if (bootSequence[lineIndex].includes('[WARN]')) line.classList.add('warning');
-        line.textContent = bootSequence[lineIndex];
-        terminal.appendChild(line);
-        lineIndex++;
-        
-        // Variable speed for realistic feel
-        const delay = Math.random() * 200 + 100;
-        setTimeout(printLine, delay);
-      } else {
-        setTimeout(() => {
-          loader.classList.add('hidden');
-          document.body.style.overflow = '';
-        }, 800);
-      }
+    // -- Create letter spans --
+    const spans = [];
+    for (let i = 0; i < NAME.length; i++) {
+      const span = document.createElement('span');
+      span.className = 'loader-letter' + (NAME[i] === ' ' ? ' space' : '');
+      span.textContent = NAME[i] === ' ' ? '' : '';
+      nameEl.appendChild(span);
+      spans.push({ el: span, char: NAME[i], isSpace: NAME[i] === ' ' });
     }
 
+    // -- Ambient particle canvas for the loader --
+    let ldrParticles = [];
+    if (ldrCanvas) {
+      const lCtx = ldrCanvas.getContext('2d');
+      ldrCanvas.width  = window.innerWidth;
+      ldrCanvas.height = window.innerHeight;
+      const LP_COUNT = 40;
+
+      class LoaderParticle {
+        constructor() { this.reset(); }
+        reset() {
+          this.x = Math.random() * ldrCanvas.width;
+          this.y = Math.random() * ldrCanvas.height;
+          this.r = Math.random() * 2 + 0.3;
+          this.vx = (Math.random() - 0.5) * 0.3;
+          this.vy = (Math.random() - 0.5) * 0.3;
+          this.alpha = Math.random() * 0.5 + 0.1;
+          this.hue = Math.random() > 0.5 ? 187 : 265; // cyan or purple
+        }
+        update() {
+          this.x += this.vx;
+          this.y += this.vy;
+          if (this.x < 0 || this.x > ldrCanvas.width)  this.vx *= -1;
+          if (this.y < 0 || this.y > ldrCanvas.height) this.vy *= -1;
+        }
+        draw(ctx) {
+          ctx.beginPath();
+          ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+          ctx.fillStyle = `hsla(${this.hue}, 100%, 70%, ${this.alpha})`;
+          ctx.fill();
+        }
+      }
+
+      for (let i = 0; i < LP_COUNT; i++) ldrParticles.push(new LoaderParticle());
+
+      let loaderAnimActive = true;
+      function animateLoaderParticles() {
+        if (!loaderAnimActive) return;
+        lCtx.clearRect(0, 0, ldrCanvas.width, ldrCanvas.height);
+        ldrParticles.forEach(p => { p.update(); p.draw(lCtx); });
+
+        // Draw faint connecting lines
+        for (let i = 0; i < ldrParticles.length; i++) {
+          for (let j = i + 1; j < ldrParticles.length; j++) {
+            const dx = ldrParticles[i].x - ldrParticles[j].x;
+            const dy = ldrParticles[i].y - ldrParticles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 120) {
+              lCtx.beginPath();
+              lCtx.moveTo(ldrParticles[i].x, ldrParticles[i].y);
+              lCtx.lineTo(ldrParticles[j].x, ldrParticles[j].y);
+              lCtx.strokeStyle = `rgba(0, 229, 255, ${(1 - dist / 120) * 0.06})`;
+              lCtx.lineWidth = 0.4;
+              lCtx.stroke();
+            }
+          }
+        }
+
+        requestAnimationFrame(animateLoaderParticles);
+      }
+      animateLoaderParticles();
+
+      // Stop loader particles after loader exits
+      setTimeout(() => { loaderAnimActive = false; }, 6000);
+    }
+
+    // -- Decode a single letter --
+    function decodeLetter(index) {
+      return new Promise(resolve => {
+        const item = spans[index];
+        if (item.isSpace) {
+          resolve();
+          return;
+        }
+        item.el.classList.add('decoding');
+        let cycle = 0;
+
+        const interval = setInterval(() => {
+          // Random scramble character
+          item.el.textContent = SCRAMBLE_CHARS[Math.floor(Math.random() * SCRAMBLE_CHARS.length)];
+          cycle++;
+
+          if (cycle >= DECODE_CYCLES) {
+            clearInterval(interval);
+            // Resolve to the real character
+            item.el.textContent = item.char;
+            item.el.classList.remove('decoding');
+            item.el.classList.add('resolved');
+            resolve();
+          }
+        }, CYCLE_SPEED);
+      });
+    }
+
+    // -- Run the full sequence --
     document.body.style.overflow = 'hidden';
-    setTimeout(printLine, 300);
+
+    async function runLoader() {
+      const totalLetters = spans.filter(s => !s.isSpace).length;
+      let resolved = 0;
+
+      for (let i = 0; i < spans.length; i++) {
+        if (spans[i].isSpace) continue;
+
+        // Fire-and-forget staggered decoding
+        decodeLetter(i).then(() => {
+          resolved++;
+          // Update progress bar
+          if (progressEl) {
+            progressEl.style.width = `${(resolved / totalLetters) * 100}%`;
+          }
+        });
+
+        // Stagger between letter starts
+        await new Promise(r => setTimeout(r, LETTER_STAGGER));
+      }
+
+      // Wait for last letters to finish decoding
+      await new Promise(r => setTimeout(r, DECODE_CYCLES * CYCLE_SPEED + 200));
+
+      // Show subtitle
+      if (subtitleEl) subtitleEl.classList.add('visible');
+
+      // Hold for a beat to appreciate
+      await new Promise(r => setTimeout(r, 800));
+
+      // Dramatic curtain exit
+      loader.classList.add('exit');
+      document.body.style.overflow = '';
+
+      // Clean up after transition
+      setTimeout(() => {
+        loader.classList.add('done');
+      }, 1200);
+    }
+
+    setTimeout(runLoader, 400);
   }
 
   /* ── 2. PARTICLE NETWORK BACKGROUND ── */

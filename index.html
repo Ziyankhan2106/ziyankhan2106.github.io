@@ -16,9 +16,23 @@
 
   <!-- ═══ LOADER ═══ -->
   <div id="loader">
-    <div class="loader-terminal" id="loader-terminal">
-      <!-- Terminal boot sequence injected by JS -->
+    <div class="loader-stage">
+      <!-- Ambient floating particles behind the text -->
+      <canvas id="loader-particles"></canvas>
+      <!-- Name letters injected by JS -->
+      <div class="loader-name" id="loader-name" aria-label="Ziyankhan Pathan"></div>
+      <!-- Subtitle that fades in after name completes -->
+      <div class="loader-subtitle" id="loader-subtitle">
+        <span class="loader-tagline">Engineer · Researcher · Builder</span>
+      </div>
+      <!-- Sleek progress bar -->
+      <div class="loader-progress-track">
+        <div class="loader-progress-bar" id="loader-progress"></div>
+      </div>
     </div>
+    <!-- Curtain halves for the dramatic exit -->
+    <div class="loader-curtain loader-curtain-left"></div>
+    <div class="loader-curtain loader-curtain-right"></div>
   </div>
 
   <!-- ═══ BACKGROUND EFFECTS ═══ -->
@@ -27,7 +41,6 @@
 
   <!-- ═══ NAVBAR ═══ -->
   <nav class="navbar" id="navbar">
-    <a href="#" class="nav-brand">ZK<span>.dev</span></a>
     <ul class="nav-links" id="nav-links">
       <li><a href="#about">About</a></li>
       <li><a href="#experience">Experience</a></li>
